@@ -4,16 +4,17 @@ from flask_cors import CORS
 import os
 import json
 from dotenv import load_dotenv
+
 from models.resume_text_extractor import extract_text
 from models.resume_parser import extract_resume_with_llama
 from models.description_analyzer import analyze_text_with_llama
-from models.scrapper import LinkedInJobScraper
-from models.ectract_skills import process_job_descriptions
 from models.skills_analyzer import analyze_skills_with_llama, get_market_skills
 from models.google_api import GoogleSearchAPI
 from models.educator_gap import analyze_and_suggest
 from models.quiz_generator import generate_quiz_questions, generate_verification_questions
 from models.interview_prep import get_interview_prep_data
+
+
 
 load_dotenv()
 
