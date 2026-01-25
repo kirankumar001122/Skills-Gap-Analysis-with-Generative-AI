@@ -5,6 +5,7 @@ import json
 from dotenv import load_dotenv
 
 # Load environment variables
+print("✅ app.py loaded successfully")
 load_dotenv()
 
 app = Flask(__name__)
@@ -110,8 +111,10 @@ def interview_prep():
     })
 
 
-# ---------------------------
-# App entry
-# ---------------------------
+# -------------------------------------------------
+# App Entry Point (REQUIRED FOR RENDER)
+# -------------------------------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
+
