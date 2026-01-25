@@ -1,16 +1,11 @@
 Flask
 gunicorn
 Flask-Cors
-spacy
-selenium
 openai
 docx2txt
-transformers
-torch
 python-docx
 PyMuPDF
 pdfminer.six
-sentencepiece
 python-dotenv
 requests
 google-generativeai
