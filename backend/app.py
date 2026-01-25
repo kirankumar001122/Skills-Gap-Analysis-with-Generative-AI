@@ -13,12 +13,19 @@ from models.educator_gap import analyze_and_suggest
 from models.quiz_generator import generate_quiz_questions, generate_verification_questions
 from models.interview_prep import get_interview_prep_data
 
+# --------------------------------------------------
+# APP SETUP
+# --------------------------------------------------
+
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
+# --------------------------------------------------
 # ENV VARIABLES
+# --------------------------------------------------
+
 GOOGLE_API_KEY = os.getenv("Google_api_key")
 CSE_ID = os.getenv("CSE_ID")
 
@@ -152,7 +159,7 @@ def educator_gap():
 
 
 # --------------------------------------------------
-# HEALTH CHECK (IMPORTANT)
+# HEALTH CHECK (REQUIRED FOR RENDER)
 # --------------------------------------------------
 
 @app.route("/")
@@ -161,10 +168,6 @@ def health():
 
 
 # --------------------------------------------------
-# ENTRY POINT
+# ❌ NO app.run()
+# Gunicorn will start the app on Render
 # --------------------------------------------------
-
-if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
