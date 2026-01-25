@@ -4,11 +4,12 @@ spacy
 selenium
 openai
 docx2txt
-spacy 
 transformers
 torch
 python-docx
 PyMuPDF
 pdfminer.six
-docx2txt
 sentencepiece
+python-dotenv
+requests
+google-generativeai
