@@ -3,14 +3,12 @@ import docx2txt
 import tempfile
 import os
 
-
 def extract_text_from_pdf(file_storage):
-    text = ""
-
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         file_storage.save(tmp.name)
         tmp_path = tmp.name
 
+    text = ""
     try:
         with fitz.open(tmp_path) as doc:
             for page in doc:
@@ -39,9 +37,7 @@ def extract_text(file_storage):
 
     if filename.endswith(".pdf"):
         return extract_text_from_pdf(file_storage)
-
     elif filename.endswith(".docx"):
         return extract_text_from_docx(file_storage)
-
     else:
-        raise ValueError("Only PDF and DOCX files are supported")
+        raise ValueError("Unsupported file format")

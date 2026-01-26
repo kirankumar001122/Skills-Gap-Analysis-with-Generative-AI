@@ -144,8 +144,70 @@ def verify_skills():
 
 @app.route("/interview_prep", methods=["POST"])
 def interview_prep():
+
     role = request.json.get("role")
     return jsonify(get_interview_prep_data(role))
+
+    """API endpoint to get interview prep data."""
+    try:
+        data = request.json
+        role = data.get('role')
+        if not role:
+            return jsonify({"error": "Role is required"}), 400
+            
+        prep_data = get_interview_prep_data(role)
+        return jsonify(prep_data)
+        
+    except Exception as e:
+        print(f"Interview Prep Error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/educator_gap', methods=['POST'])
+def analyze_curriculum():
+    """
+    API endpoint to analyze a tutor's curriculum and suggest improvements.
+    """
+    try:
+        # Get the description from the POST request body
+        data = request.get_json()
+        description = data.get('description', '').strip()
+
+        # Validate that a description was provided
+        if not description:
+            return jsonify({"error": "No description provided"}), 400
+
+        # Path to the skills.json file
+        skills_data_file = 'job_skills.json'
+
+        # Analyze the curriculum and get suggestions for improvement
+        result = analyze_and_suggest(description, skills_data_file)
+
+        # Return the extracted data and suggestions
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/curriculum_plan')
+def get_curriculum_plan():
+    language = request.args.get('language')
+    if not language:
+        return jsonify({'error': 'Language parameter is required'}), 400
+
+    try:
+        # Use the instantiated google_search object to fetch the curriculum plan
+        curriculum_plan = google_search.get_curriculum_plan(language)
+        return jsonify(curriculum_plan)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+@app.route("/", methods=["GET"])
+def health():
+    return jsonify({"status": "Backend running 🚀"})
+
+
+
+
+(Fix backend for Render (Flask + PyMuPDF))
 
 
 # --------------------------------------------------
