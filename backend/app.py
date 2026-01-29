@@ -5,6 +5,24 @@ import json
 from dotenv import load_dotenv
 
 from models.resume_text_extractor import extract_text
+# ---------------- SAFE AI PLACEHOLDERS ----------------
+
+def extract_resume_with_llama(*args, **kwargs):
+    return {
+        "skills": ["Python", "Flask", "React"],
+        "years_of_experience": 2,
+        "education": "BCA / MCA"
+    }
+
+def analyze_text_with_llama(*args, **kwargs):
+    return {"summary": "AI module disabled for deployment demo"}
+
+def analyze_skills_with_llama(*args, **kwargs):
+    return ["Docker", "AWS"]
+
+def get_market_skills(*args, **kwargs):
+    return ["Docker", "AWS", "Kubernetes"]
+
 
 # ---------------- SAFE AI IMPORTS ----------------
 
@@ -348,9 +366,10 @@ def get_curriculum_plan():
 # HEALTH CHECK
 # --------------------------------------------------
 
-@app.route("/", methods=["GET"])
-def health():
-    return jsonify({"status": "Backend running 🚀"})
+@app.route("/")
+def home():
+    return {"status": "Backend running (AI disabled for deployment)"}
+
 
 # --------------------------------------------------
 # APP RUN
