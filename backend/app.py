@@ -2,20 +2,29 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 import json
-from dotenv import load_dotenv
 
-from models.resume_text_extractor import extract_text
-# ---------------- SAFE AI PLACEHOLDERS ----------------
+# --------------------------------------------------
+# SAFE PLACEHOLDERS (NO HEAVY IMPORTS)
+# --------------------------------------------------
+
+def extract_text(file):
+    try:
+        return file.read().decode("utf-8", errors="ignore")
+    except:
+        return ""
 
 def extract_resume_with_llama(*args, **kwargs):
     return {
         "skills": ["Python", "Flask", "React"],
         "years_of_experience": 2,
-        "education": "BCA / MCA"
+        "education": "BCA / MCA",
+        "certifications": []
     }
 
 def analyze_text_with_llama(*args, **kwargs):
-    return {"summary": "AI module disabled for deployment demo"}
+    return {
+        "skills": ["Docker", "AWS", "Git"]
+    }
 
 def analyze_skills_with_llama(*args, **kwargs):
     return ["Docker", "AWS"]
@@ -23,74 +32,36 @@ def analyze_skills_with_llama(*args, **kwargs):
 def get_market_skills(*args, **kwargs):
     return ["Docker", "AWS", "Kubernetes"]
 
+def analyze_and_suggest(*args, **kwargs):
+    return {"message": "AI disabled for deployment demo"}
 
-# ---------------- SAFE AI IMPORTS ----------------
+def generate_quiz_questions(*args, **kwargs):
+    return []
 
-try:
-    from models.resume_parser import extract_resume_with_llama
-except ImportError:
-    def extract_resume_with_llama(*args, **kwargs):
+def generate_verification_questions(*args, **kwargs):
+    return []
+
+def get_interview_prep_data(*args, **kwargs):
+    return {"message": "AI disabled"}
+
+class GoogleSearchAPI:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def get_curriculum_plan(self, *args, **kwargs):
         return {
-            "skills": [],
-            "years_of_experience": "0",
-            "education": "NA",
-            "certifications": []
+            "plan": [
+                {"week": 1, "topic": "Basics"},
+                {"week": 2, "topic": "Advanced Concepts"}
+            ]
         }
-
-try:
-    from models.description_analyzer import analyze_text_with_llama
-except ImportError:
-    def analyze_text_with_llama(*args, **kwargs):
-        return {}
-
-try:
-    from models.skills_analyzer import analyze_skills_with_llama, get_market_skills
-except ImportError:
-    def analyze_skills_with_llama(*args, **kwargs): return []
-    def get_market_skills(*args, **kwargs): return []
-
-try:
-    from models.google_api import GoogleSearchAPI
-except ImportError:
-    class GoogleSearchAPI:
-        def __init__(self, *args): pass
-        def get_curriculum_plan(self, *args): return {}
-
-try:
-    from models.educator_gap import analyze_and_suggest
-except ImportError:
-    def analyze_and_suggest(*args, **kwargs):
-        return {"error": "AI disabled"}
-
-try:
-    from models.quiz_generator import generate_quiz_questions, generate_verification_questions
-except ImportError:
-    def generate_quiz_questions(*args, **kwargs): return []
-    def generate_verification_questions(*args, **kwargs): return []
-
-try:
-    from models.interview_prep import get_interview_prep_data
-except ImportError:
-    def get_interview_prep_data(*args, **kwargs):
-        return {"error": "AI disabled"}
 
 # --------------------------------------------------
 # APP SETUP
 # --------------------------------------------------
 
-load_dotenv()
-
 app = Flask(__name__)
 CORS(app)
-
-# --------------------------------------------------
-# ENV VARIABLES
-# --------------------------------------------------
-
-GOOGLE_API_KEY = os.getenv("Google_api_key")
-CSE_ID = os.getenv("CSE_ID")
-
-google_search = GoogleSearchAPI(GOOGLE_API_KEY, CSE_ID)
 
 # --------------------------------------------------
 # AUTH
@@ -152,71 +123,31 @@ def parse_resume():
     data = extract_resume_with_llama(text)
 
     return jsonify({
-        "skills": data.get("skills", []),
-        "experience": data.get("years_of_experience", "0"),
-        "education": data.get("education", "NA"),
-        "certifications": data.get("certifications", [])
+        "skills": data["skills"],
+        "experience": data["years_of_experience"],
+        "education": data["education"],
+        "certifications": data["certifications"]
     })
 
 # --------------------------------------------------
-# 🔥 JD + RESUME ANALYSIS (FIXED ROUTE)
+# JD ANALYSIS
 # --------------------------------------------------
 
 @app.route("/analyze_with_jd", methods=["POST"])
 def analyze_with_jd():
-    try:
-        # Handle FormData (File Upload)
-        if 'jd_file' not in request.files:
-            return jsonify({"error": "jd_file is required"}), 400
-        
-        jd_file = request.files['jd_file']
-        user_skills_str = request.form.get('user_skills', '[]')
-        
-        try:
-            user_skills = json.loads(user_skills_str)
-        except:
-            user_skills = []
+    if 'jd_file' not in request.files:
+        return jsonify({"error": "jd_file is required"}), 400
 
-        # Extract text from the uploaded JD file
-        job_description = extract_text(jd_file)
+    jd_text = extract_text(request.files['jd_file'])
+    jd_analysis = analyze_text_with_llama(jd_text)
 
-        if not job_description:
-             return jsonify({"error": "Empty or unreadable Job Description file"}), 400
-
-        # Analyze usage of AI to extract skills from JD
-        jd_analysis = analyze_text_with_llama(job_description)
-        jd_skills = jd_analysis.get("skills", [])
-        
-        # Calculate Gap
-        # Simple case-insensitive match
-        user_skills_lower = {s.lower() for s in user_skills}
-        jd_skills_lower = {s.lower() for s in jd_skills}
-        
-        common_lower = user_skills_lower.intersection(jd_skills_lower)
-        missing_lower = jd_skills_lower - user_skills_lower
-        
-        # Restore original casing for display (best effort)
-        common_skills = [s for s in user_skills if s.lower() in common_lower]
-        missing_skills = [s for s in jd_skills if s.lower() in missing_lower]
-        
-        # If no overlap found?
-        if not common_skills and not missing_skills:
-             # Fallback if extraction failed
-             missing_skills = jd_skills
-
-        analysis = {
-            "common_skills": common_skills,
-            "missing_skills": missing_skills, 
-            "llama_recommendations": f"Based on the JD, you are missing: {', '.join(missing_skills[:5])}. Focus on these areas.",
-            "roadmap": [],
-            "institutions": []
-        }
-
-        return jsonify(analysis), 200
-
-    except Exception as e:
-        print(f"Analyze JD Error: {e}")
-        return jsonify({"error": str(e)}), 500
+    return jsonify({
+        "common_skills": [],
+        "missing_skills": jd_analysis.get("skills", []),
+        "llama_recommendations": "AI disabled for deployment demo",
+        "roadmap": [],
+        "institutions": []
+    })
 
 # --------------------------------------------------
 # SKILLS
@@ -242,18 +173,11 @@ def analyze_skills():
 
 @app.route("/generate_quiz", methods=["POST"])
 def generate_quiz():
-    data = request.json
-    return jsonify(generate_quiz_questions(
-        data.get("role"), data.get("missing_skills", [])
-    ))
-
+    return jsonify([])
 
 @app.route("/verify_skills", methods=["POST"])
 def verify_skills():
-    data = request.json
-    return jsonify(generate_verification_questions(
-        data.get("role"), data.get("matched_skills", [])
-    ))
+    return jsonify([])
 
 # --------------------------------------------------
 # INTERVIEW PREP
@@ -261,106 +185,24 @@ def verify_skills():
 
 @app.route("/interview_prep", methods=["POST"])
 def interview_prep():
-    role = request.json.get("role")
-    return jsonify(get_interview_prep_data(role))
-
-@app.route("/interview_experiences", methods=["GET", "POST"])
-def interview_experiences():
-    if request.method == "GET":
-        try:
-            if os.path.exists("interview_experiences.json"):
-                with open("interview_experiences.json", "r") as f:
-                    return jsonify(json.load(f))
-            return jsonify([])
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-    if request.method == "POST":
-        try:
-            new_exp = request.json
-            experiences = []
-            if os.path.exists("interview_experiences.json"):
-                with open("interview_experiences.json", "r") as f:
-                    experiences = json.load(f)
-            
-            experiences.append(new_exp)
-            
-            with open("interview_experiences.json", "w") as f:
-                json.dump(experiences, f, indent=4)
-                
-            return jsonify({"message": "Experience added"}), 201
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-@app.route("/find_mentors", methods=["POST"])
-def find_mentors():
-    try:
-        data = request.json
-        role = data.get("role", "General")
-        
-        # Mock Response for stability (Selenium scraper is risky in prod)
-        mentors = [
-            {
-                "name": f"Expert {role} Mentor",
-                "title": f"Senior {role} Engineer",
-                "company": "Tech Giants Inc.",
-                "topics": [role, "System Design", "Career Growth"],
-                "rating": 4.9,
-                "status": "Available",
-                "cost": "$50/session",
-                "profile_url": "#"
-            },
-            {
-                "name": "Sarah Connor",
-                "title": "Tech Lead",
-                "company": "Skynet Systems",
-                "topics": ["Leadership", "Management", role],
-                "rating": 4.8,
-                "status": "Busy",
-                "cost": "$80/session",
-                "profile_url": "#"
-            }
-        ]
-        return jsonify(mentors)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"message": "AI disabled"})
 
 # --------------------------------------------------
 # EDUCATOR GAP
 # --------------------------------------------------
 
 @app.route('/educator_gap', methods=['POST'])
-def analyze_curriculum():
-    try:
-        data = request.get_json()
-        description = data.get('description', '').strip()
-
-        if not description:
-            return jsonify({"error": "No description provided"}), 400
-
-        skills_data_file = 'job_skills.json'
-        result = analyze_and_suggest(description, skills_data_file)
-
-        return jsonify(result)
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+def educator_gap():
+    return jsonify({"message": "AI disabled"})
 
 # --------------------------------------------------
 # CURRICULUM PLAN
 # --------------------------------------------------
 
 @app.route('/curriculum_plan')
-def get_curriculum_plan():
+def curriculum_plan():
     language = request.args.get('language')
-    if not language:
-        return jsonify({'error': 'Language parameter is required'}), 400
-
-    try:
-        curriculum_plan = google_search.get_curriculum_plan(language)
-        return jsonify(curriculum_plan)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return jsonify({"language": language, "plan": "Demo plan"})
 
 # --------------------------------------------------
 # HEALTH CHECK
@@ -368,12 +210,11 @@ def get_curriculum_plan():
 
 @app.route("/")
 def home():
-    return {"status": "Backend running (AI disabled for deployment)"}
-
+    return {"status": "Backend running successfully (Render safe)"}
 
 # --------------------------------------------------
 # APP RUN
 # --------------------------------------------------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
